@@ -30,7 +30,7 @@ class GitHubManager:
         self.logger.addHandler(handler)
 
         # Project directories
-        self.project_root = Path(os.path.dirname(__file__)).parent.parent
+        self.project_root = Path(os.path.dirname(__file__)).parent
         self.repo_url = f"https://{config.github_token}@github.com/{config.github_user}/{config.github_repo}.git"
         self.agent_dir = self.project_root / "uroboros"
         self.agent_dir.mkdir(parents=True, exist_ok=True)
