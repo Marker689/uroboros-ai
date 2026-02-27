@@ -192,6 +192,10 @@ class UroborosAgent(Agent):
         """Sync with GitHub repository."""
         return self.github.sync_with_github()
 
+    def sync_with_github_api(self) -> bool:
+        """Sync with GitHub repository using API."""
+        return self.github.push_via_api()
+
     def get_status(self) -> Dict[str, Any]:
         """Get comprehensive agent status."""
         return {

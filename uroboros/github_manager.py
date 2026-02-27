@@ -3,6 +3,7 @@ GitHub integration for Uroboros.
 Handles version control, commits, and releases.
 """
 
+import httpx
 import json
 import logging
 import os
@@ -77,7 +78,7 @@ class GitHubManager:
             return False
 
     def push_changes(self, branch: str = "main") -> bool:
-        """Push changes to GitHub."""
+        """Push changes to GitHub using git command."""
         try:
             subprocess.run(
                 ["git", "push", "-u", "origin", branch],
@@ -89,6 +90,78 @@ class GitHubManager:
             return True
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Failed to push changes: {e}")
+            return False
+
+    def push_via_api(self, branch: str = "main") -> bool:
+        """Push changes to GitHub using GitHub API."""
+        try:
+            self.logger.info(f"Pushing to GitHub via API on branch {branch}...")
+            
+            # Get the latest commit SHA
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0:
+                self.logger.error(f"Failed to get HEAD: {result.stderr}")
+                return False
+            commit_sha = result.stdout.strip()
+            
+            # Get the current branch name
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0:
+                self.logger.error(f"Failed to get branch: {result.stderr}")
+                return False
+            current_branch = result.stdout.strip()
+            
+            # Create a GitHub API client
+            api_url = "https://api.github.com/repos"
+            repo_path = f"{self.config.github_user}/{self.config.github_repo}"
+            
+            headers = {
+                "Authorization": f"token {self.config.github_token}",
+                "Accept": "application/vnd.github.v3+json",
+            }
+            
+            # Get the latest commit info
+            commit_url = f"{api_url}/{repo_path}/commits/{commit_sha}"
+            response = httpx.get(commit_url, headers=headers)
+            if response.status_code != 200:
+                self.logger.error(f"Failed to get commit info: {response.status_code}")
+                return False
+            
+            commit_data = response.json()
+            commit_message = commit_data.get("commit", {}).get("message", "No message")
+            author_name = commit_data.get("commit", {}).get("author", {}).get("name", "Uroboros")
+            author_email = commit_data.get("commit", {}).get("author", {}).get("email", "uroboros@local")
+            
+            # Create a new ref (branch) or update existing one
+            ref_url = f"{api_url}/{repo_path}/git/refs/heads/{branch}"
+            
+            payload = {
+                "sha": commit_sha,
+                "force": branch != current_branch,
+            }
+            
+            response = httpx.patch(ref_url, headers=headers, json=payload)
+            if response.status_code not in [200, 201]:
+                self.logger.error(f"Failed to update ref: {response.status_code} - {response.text}")
+                return False
+            
+            self.logger.info(f"Successfully pushed to GitHub via API: {branch}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to push via API: {e}")
             return False
 
     def create_release(self, version: str, tag: Optional[str] = None) -> bool:
