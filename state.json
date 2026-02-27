@@ -29,6 +29,11 @@
     "[2026-02-27T16:54:59.794652] Uroboros initialized: Uroboros(iterations=0, memory=0, version=1.0.0)",
     "[2026-02-27T16:54:59.794991] Starting evolution cycle...",
     "[2026-02-27T16:54:59.798380] Code rewritten successfully",
-    "[2026-02-27T16:54:59.803555] Version 1.0.1 created"
+    "[2026-02-27T16:54:59.803555] Version 1.0.1 created",
+    "[2026-02-27T16:55:22.543387] Loaded state from /home/marker/ouroboros/state.json",
+    "[2026-02-27T16:55:22.543595] Uroboros initialized: Uroboros(iterations=0, memory=0, version=1.0.0)",
+    "[2026-02-27T16:55:22.543734] Starting evolution cycle...",
+    "[2026-02-27T16:55:22.546259] Code rewritten successfully",
+    "[2026-02-27T16:55:22.550400] Version 1.0.1 created"
   ]
 }
