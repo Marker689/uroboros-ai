@@ -1,0 +1,16 @@
+# Uroboros AI - Requirements
+# Self-modifying AI agent that writes its own code, rewrites its own mind, and evolves autonomously
+
+# Core dependencies
+httpx>=0.25.0
+python-dotenv>=1.0.0
+
+# Telegram bot
+python-telegram-bot>=20.0
+
+# Git operations
+GitPython>=3.1.0
+
+# Optional: For enhanced functionality
+aiohttp>=3.9.0
+asyncio>=3.4.3
