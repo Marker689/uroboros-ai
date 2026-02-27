@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -94,11 +95,83 @@ class SelfModificationEngine:
 
         return analysis
 
-    def generate_modification_plan(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate a plan for self-modification."""
+    def _get_llm_client(self):
+        """Get LLM client from agent."""
+        if hasattr(self.agent, 'llm_client') and self.agent.llm_client:
+            return self.agent.llm_client
+        return None
+
+    def _analyze_with_llm(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Use LLM to analyze code and generate modification plan."""
+        llm_client = self._get_llm_client()
+        
+        if not llm_client:
+            self.logger.warning("LLM client not available, using fallback analysis")
+            return self._generate_fallback_plan(analysis)
+
+        try:
+            # Prepare code analysis for LLM
+            code_summary = "\n".join([
+                f"File: {f['path']}, Lines: {f['lines']}"
+                for f in analysis["files"][:5]
+            ])
+            
+            classes_info = "\n".join([
+                f"  - {c['name']}: {', '.join(c['methods'])}"
+                for c in analysis["classes"]
+            ])
+            
+            functions_info = "\n".join([
+                f"  - {f['name']}({', '.join(f['args'])})"
+                for f in analysis["functions"][:5]
+            ])
+
+            prompt = f"""You are Uroboros, a self-modifying AI agent. Analyze this codebase and suggest improvements.
+
+Current codebase:
+{code_summary}
+
+Classes:
+{classes_info}
+
+Functions:
+{functions_info}
+
+Your task: Suggest 2-4 specific code improvements. For each:
+1. Type: "create_class", "create_function", "create_module", "modify_class", "modify_function"
+2. Priority: "high", "medium", "low"
+3. Description: Brief explanation
+4. Target: File path (e.g., "uroboros/agent.py")
+5. Code: Python code to add (if applicable)
+
+Return as JSON array of objects. Only suggest improvements that would make the agent better.
+"""
+
+            response = llm_client.chat([
+                {"role": "system", "content": "You are a code analysis expert. Return JSON only."},
+                {"role": "user", "content": prompt}
+            ])
+
+            # Parse LLM response
+            try:
+                # Try to extract JSON from response
+                json_match = re.search(r'\[.*\]', response, re.DOTALL)
+                if json_match:
+                    plan = json.loads(json_match.group(0))
+                    self.logger.info(f"LLM suggested {len(plan)} modifications")
+                    return plan
+            except json.JSONDecodeError:
+                self.logger.warning(f"Failed to parse LLM response: {response[:200]}")
+
+        except Exception as e:
+            self.logger.error(f"LLM analysis failed: {e}")
+
+        return self._generate_fallback_plan(analysis)
+
+    def _generate_fallback_plan(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate fallback modification plan."""
         plan = []
 
-        # Analyze code quality and suggest improvements
         if len(analysis["classes"]) < 3:
             plan.append({
                 "type": "create_class",
@@ -115,7 +188,6 @@ class SelfModificationEngine:
                 "target": "uroboros/utils.py",
             })
 
-        # Add adaptive learning module
         plan.append({
             "type": "create_module",
             "priority": "high",
@@ -123,7 +195,6 @@ class SelfModificationEngine:
             "target": "uroboros/adaptive_learning.py",
         })
 
-        # Add memory optimization
         plan.append({
             "type": "create_module",
             "priority": "medium",
@@ -131,6 +202,15 @@ class SelfModificationEngine:
             "target": "uroboros/memory_optimizer.py",
         })
 
+        return plan
+
+    def generate_modification_plan(self, analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate a plan for self-modification using LLM."""
+        self.logger.info("Generating modification plan with LLM analysis...")
+        
+        # Use LLM for autonomous decision making
+        plan = self._analyze_with_llm(analysis)
+        
         return plan
 
     def apply_modification(self, modification: Dict[str, Any]) -> bool:
