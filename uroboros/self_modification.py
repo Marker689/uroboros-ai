@@ -53,7 +53,8 @@ class SelfModificationEngine:
             "total_lines": 0,
         }
 
-        for file_path in self.code_dir.rglob("*.py"):
+        # Scan main agent directory for Python files
+        for file_path in self.agent_dir.rglob("*.py"):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     content = f.read()
@@ -168,7 +169,7 @@ class {class_name}(Agent):
         return f"Auto-generated response from {class_name}"
 """
 
-        filepath = self.code_dir / f"{class_name.lower().replace(' ', '_')}.py"
+        filepath = self.agent_dir / f"{class_name.lower().replace(' ', '_')}.py"
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(code)
 
@@ -190,7 +191,7 @@ def {func_name}(input_data: Any) -> Any:
     return f"Auto-generated response from {func_name}"
 """
 
-        filepath = self.code_dir / "utils.py"
+        filepath = self.agent_dir / "utils.py"
         with open(filepath, "a", encoding="utf-8") as f:
             f.write("\n\n" + code)
 
@@ -227,7 +228,7 @@ class {module_name.capitalize()}:
         return f"Auto-generated response from {module_name}"
 """
 
-        filepath = self.code_dir / f"{module_name.lower().replace(' ', '_')}.py"
+        filepath = self.agent_dir / f"{module_name.lower().replace(' ', '_')}.py"
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(code)
 
