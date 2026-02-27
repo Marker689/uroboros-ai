@@ -77,17 +77,39 @@ class GitHubManager:
             self.logger.error(f"Failed to commit changes: {e}")
             return False
 
-    def push_changes(self, branch: str = "main") -> bool:
+    def push_changes(self, branch: str = None) -> bool:
         """Push changes to GitHub using git command."""
+        if branch is None:
+            # Detect current branch
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                    cwd=self.project_root,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                branch = result.stdout.strip()
+            except Exception:
+                branch = "master"
+        
         try:
-            subprocess.run(
+            result = subprocess.run(
                 ["git", "push", "-u", "origin", branch],
                 cwd=self.project_root,
                 capture_output=True,
-                check=True,
+                text=True,
+                timeout=30,
             )
-            self.logger.info(f"Changes pushed to {branch} branch")
-            return True
+            if result.returncode == 0:
+                self.logger.info(f"Changes pushed to {branch} branch")
+                return True
+            else:
+                self.logger.error(f"Failed to push changes: {result.stderr}")
+                return False
+        except subprocess.TimeoutExpired:
+            self.logger.error("Git push timed out after 30 seconds")
+            return False
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Failed to push changes: {e}")
             return False
