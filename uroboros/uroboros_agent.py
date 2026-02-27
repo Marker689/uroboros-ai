@@ -59,7 +59,7 @@ class UroborosAgent(Agent):
                             "temperature": 0.7,
                         },
                         headers={"Authorization": f"Bearer {self.api_key}"},
-                        timeout=60.0,
+                        timeout=600.0,
                     )
                     response.raise_for_status()
                     data = response.json()
